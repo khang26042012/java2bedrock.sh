@@ -6,29 +6,35 @@ on:
         description: 'Java pack direct URL'
         required: true
         default: 'https://files.catbox.moe/53103j.zip'
-      attachable_material:
-        description: 'attachable material'
-        required: false
-        default: 'entity_alphatest_one_sided'
 jobs:
   convert:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Run converter
+      - name: Install deps
         run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing moreutils zip imagemagick ghostscript
+          sudo npm install -g yarn spritesheet-js
+      - name: Convert
+        run: |
+          mkdir -p staging
+          cp converter.sh staging/
+          cd staging
           chmod +x converter.sh
-          ./converter.sh "${{ inputs.pack_url }}" -w "false" -a "${{ inputs.attachable_material }}" -v "1.21.4" || true
-          ls -la
-          find . -maxdepth 2 -name '*.mcpack' -o -maxdepth 2 -name '*.zip' | head -20
-      - name: Upload all outputs
+          curl -sL -o input_pack.zip "${{ inputs.pack_url }}"
+          ls -la input_pack.zip
+          ./converter.sh input_pack.zip -w "false" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null" -v "1.21.4" -r "false" -s "false" -u "true"
+      - name: Upload outputs
         uses: actions/upload-artifact@v4
         with:
-          name: converted
+          name: Pack Files
           path: |
-            *.mcpack
-            *.zip
-          if-no-files-found: warn
+            staging/target/packaged/geyser_resources.mcpack
+            staging/target/geyser_addon.mcaddon
+            staging/target/geyser_mappings.json
+            staging/config.json
+          if-no-files-found: error
