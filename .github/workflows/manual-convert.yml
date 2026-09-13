@@ -1,0 +1,34 @@
+name: Manual Convert
+on:
+  workflow_dispatch:
+    inputs:
+      pack_url:
+        description: 'Java pack direct URL'
+        required: true
+        default: 'https://files.catbox.moe/53103j.zip'
+      attachable_material:
+        description: 'attachable material'
+        required: false
+        default: 'entity_alphatest_one_sided'
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run converter
+        run: |
+          chmod +x converter.sh
+          ./converter.sh "${{ inputs.pack_url }}" -w "false" -a "${{ inputs.attachable_material }}" -v "1.21.4" || true
+          ls -la
+          find . -maxdepth 2 -name '*.mcpack' -o -maxdepth 2 -name '*.zip' | head -20
+      - name: Upload all outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: converted
+          path: |
+            *.mcpack
+            *.zip
+          if-no-files-found: warn
